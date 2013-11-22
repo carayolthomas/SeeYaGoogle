@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Iterator;
 import java.util.List;
 
+import org.hibernate.Query;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.input.SAXBuilder;
@@ -29,6 +30,9 @@ public class ProcessingFiles {
 	public final static String INFO = "INFO";
 	public final static String ITEM = "ITEM";
 	
+	public static ConnectionTableDocument doc;
+	public static Query q;
+	
 	public static void parseAllDocuments() {
 		/** Liste de tous les fichiers */
 		String[] allFiles = FileXML.checkAllXMLFiles();
@@ -36,15 +40,15 @@ public class ProcessingFiles {
 		/** Traitement des fichiers un par un */
 		SAXBuilder sxb = new SAXBuilder();
 		try {
-		//	for(int fileId = 0 ; fileId < allFiles.length; fileId++) {
-				Document document = sxb.build(new File(MAIN_DIRECTORY.getAbsolutePath() + "/" + allFiles[1]));
+			for(int fileId = 0 ; fileId < allFiles.length; fileId++) {
+				Document document = sxb.build(new File(MAIN_DIRECTORY.getAbsolutePath() + "/" + allFiles[fileId]));
 				/** Sauvegarde du document dans la BD */
-				DatabaseConnection.insertDocument(allFiles[1]);
+				insertDocument(allFiles[fileId]);
 				/** Element racine (BALADE) */
 				Element racine = document.getRootElement();
-				parsingDocument(racine, allFiles[1]); 
-				// ajout d'un argu car sinon on a pas acces au nom du doc (getDocument renvoie la mama chose pour tous fichiers
-		//	}
+				//parsingDocument(racine, allFiles[fileId]); 
+				
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -58,7 +62,7 @@ public class ProcessingFiles {
 		   Element currentElement = iteChildFromRacine.next();
 		   switch (currentElement.getName()) {
 			case PRESENTATION:
-				traitementPresentation(currentElement, nomDoc);
+				//traitementPresentation(currentElement, nomDoc);
 				System.out.println(nomDoc);
 				break;
 			case RECIT:
@@ -107,18 +111,72 @@ public class ProcessingFiles {
 				.iterator();
 		while (iteChildFromPresentation.hasNext()) {
 			Element currentElement = iteChildFromPresentation.next(); 
-			traitementTexte(currentElement, currentElement.getName(), nomDoc);
+			//traitementTexte(currentElement, currentElement.getName(), nomDoc);
 			
 		}
 	}
 
-	private static void traitementTexte(Element element, String typeConteneur, String nomDoc) {
+	/*private static void traitementTexte(Element element, String typeConteneur, String nomDoc) {
 		DatabaseConnection.insertText(element, typeConteneur, nomDoc);
+		
+	}*/
+	
+	
+	
+	public static void insertDocument(String name) {
+	//Exécution d'une requête d'écriture 
+		ConnectionTableDocument doc = new ConnectionTableDocument();
+		doc.setNomDocument(name);
+		DatabaseConnection.s.save(doc);
+	//	DatabaseConnection.t.commit();
+		/** TODO : commit a la fin, pd transaction globale ?? */
 		
 	}
 
+	//INSERT INTO Conteneur (idDocument, typeConteneur) VALUES ((SELECT idDocument FROM Document WHERE nomDocument="NOMDOCUMENT"), "TYPECONTENEUR");
+
+	/*public static int insertText(Element element, String typeConteneur, String nomDoc){
+		String mot;
+		try {
+			System.out.println(element.getText());
+			
+			StringTokenizer st = new StringTokenizer(element.getText());
+		     while (st.hasMoreTokens()) {
+		    	 mot = st.nextToken();
+		    	 resultat=statement.executeQuery("SELECT * FROM Terme where nomTerme =\""+mot+"\";");
+		    	// resultat.next();
+		    	 System.out.println(mot);
+		    	 if (!resultat.next()){
+		    		 System.out.println("coucou  hibou");
+		    	 }
+		    	
+		         System.out.println(st.nextToken());
+		     }
+			return statement.executeUpdate( "INSERT INTO Conteneur (idDocument, typeConteneur) VALUES ((SELECT idDocument FROM Document WHERE nomDocument=\""+nomDoc+"\"), \""+typeConteneur+"\");" );
+			
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return -1;
+		}
+	}*/
 	public static void main(String[] args) {
 		DatabaseConnection.doConnect();
+		
+		
+		doc = new ConnectionTableDocument();
+		
 		parseAllDocuments();
+		/*String requete1 = "FROM ConnectionTableDocument doc where idDocument = 5";
+		Query q = DatabaseConnection.s.createQuery(requete1);
+		ConnectionTableDocument ctd = (ConnectionTableDocument) q.uniqueResult();
+		//List results = q.list();
+		System.out.println("Résultat :"+ctd.getIdDocument());*/
+		
+		
+		
+		//DatabaseConnection.t = DatabaseConnection.s.beginTransaction();
+		DatabaseConnection.endConnect();
+		
 	}
 }
