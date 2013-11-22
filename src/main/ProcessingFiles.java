@@ -12,8 +12,8 @@ import utils.*;
 
 public class ProcessingFiles {
 
-	//public static File MAIN_DIRECTORY = new File("/home/thomas/Bureau/RI/workspaceRI/ri/src/collection");
-	public static File MAIN_DIRECTORY = new File("/home/julie/Bureau/COURS/5IL/RI/SeeYaGoogle/src/collection");
+	public static File MAIN_DIRECTORY = new File("/home/thomas/git/SeeYaGoogle/src/");
+	//public static File MAIN_DIRECTORY = new File("/home/julie/Bureau/COURS/5IL/RI/SeeYaGoogle/src/collection");
 	public final static String PRESENTATION = "PRESENTATION";
 	public final static String RECIT = "RECIT";
 	public final static String COMPLEMENTS = "COMPLEMENTS";
