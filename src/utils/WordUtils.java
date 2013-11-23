@@ -33,10 +33,20 @@ public class WordUtils {
 		}
 	}
 
+	/**
+	 * Check if a word is in the stopList
+	 * @param pToCheck
+	 * @param pStopList
+	 * @return
+	 */
 	public static boolean isInStopList(String pToCheck, List<String> pStopList) {
 		return pStopList.contains(pToCheck);
 	}
 
+	/**
+	 * Load The stopList file in an ArrayList
+	 * @return
+	 */
 	public static List<String> loadStopList() {
 		List<String> lStopList = new ArrayList<String>();
 		try {

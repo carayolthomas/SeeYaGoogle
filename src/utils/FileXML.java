@@ -44,7 +44,7 @@ public class FileXML {
 	}
 
 	public static String[] checkAllXMLFiles() {
-		File repertoire = ProcessingFiles.MAIN_DIRECTORY;
+		File repertoire = new File(ProcessingFiles.MAIN_DIRECTORY + "/collection/");
 		String[] listXMLFiles;
 		
 		FilenameFilter filter = new FilenameFilter() {
