@@ -21,6 +21,9 @@ public class ConnectionTableTerme {
 
 	@Column(name = "nomTerme")
 	String nomTerme;
+	
+	@Column(name = "idConteneur")
+	int idConteneur;
 
 	public ConnectionTableTerme() {
 	}
@@ -39,6 +42,14 @@ public class ConnectionTableTerme {
 
 	public void setNomTerme(String nomTerme) {
 		this.nomTerme = nomTerme;
+	}
+
+	public int getIdConteneur() {
+		return idConteneur;
+	}
+
+	public void setIdConteneur(int idConteneur) {
+		this.idConteneur = idConteneur;
 	}
 
 	

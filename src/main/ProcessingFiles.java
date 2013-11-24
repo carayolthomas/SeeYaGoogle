@@ -3,14 +3,12 @@ package main;
 import java.io.File;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Logger;
 
 import org.hibernate.Query;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.input.SAXBuilder;
 
-import databasetable.*;
 import utils.*;
 
 public class ProcessingFiles {
@@ -51,18 +49,18 @@ public class ProcessingFiles {
 		/** Traitement des fichiers un par un */
 		SAXBuilder sxb = new SAXBuilder();
 		try {
-			//for (int fileId = 0; fileId < allFiles.length; fileId++) {
+			for (int fileId = 0; fileId < allFiles.length; fileId++) {
 				Document document = sxb.build(new File(MAIN_DIRECTORY
-						.getAbsolutePath() + "/collection/" + allFiles[0]));
+						.getAbsolutePath() + "/collection/" + allFiles[fileId]));
 				/** Sauvegarde du document dans la BD */
-				DatabaseConnection.insertDocument(allFiles[0]);
+				DatabaseConnection.insertDocument(allFiles[fileId]);
 				/** MAJ currentIdDocument */
-				setCurrentIdDocument(allFiles[0]);
+				setCurrentIdDocument(allFiles[fileId]);
 				/** Element racine (BALADE) */
 				Element racine = document.getRootElement();
-				parsingDocument(racine, allFiles[0]);
+				parsingDocument(racine, allFiles[fileId]);
 
-			//}
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -80,15 +78,15 @@ public class ProcessingFiles {
 			Element currentElement = iteChildFromRacine.next();
 			switch (currentElement.getName()) {
 			case PRESENTATION:
-				/** Traitement de la presentation */
+				/** Traitement de la presentation : DONE*/
 				traitementPresentation(currentElement);
 				break;
 			case RECIT:
-				/** Traitement du recit */
+				/** Traitement du recit : DOING*/
 				traitementRecit(currentElement);
 				break;
 			case COMPLEMENTS:
-				/** Traitement du Complement */
+				/** Traitement du Complement : DONE*/
 				traitementComplements(currentElement);
 				break;
 			default:
@@ -101,19 +99,30 @@ public class ProcessingFiles {
 	 * Traitement d'un récit
 	 * @param currentElement
 	 */
-	private static void traitementRecit(Element currentElement) {
-		switch (currentElement.getName()) {
-		case SEC:
-			// traitementSec(currentElement, nomDoc);
-			break;
-		case P:
-			// traitementP(currentElement, nomDoc);
-			break;
-		case PHOTO:
-			// traitementPhoto(currentElement, nomDoc);
-			break;
-		default:
-			break;
+	private static void traitementRecit(Element element) {
+		/** Ajout du dans la table Conteneur */
+		DatabaseConnection.insertRecit();
+		/** Traitement des fils de la presentation */
+		List<Element> childFromRecit = element.getChildren();
+		Iterator<Element> iteChildFromRecit = childFromRecit.iterator();
+		while (iteChildFromRecit.hasNext()) {
+			Element currentElement = iteChildFromRecit.next();
+			switch (currentElement.getName()) {
+			case SEC:
+				/** Traitement d'une section : TOCHECK */
+				traitementSec(currentElement);
+				break;
+			case P:
+				/** Traitement d'un paragraphe : DONE */
+				traitementP(currentElement);
+				break;
+			case PHOTO:
+				/** Traitement d'une photo : TOCHECK */
+				traitementTexte(currentElement);
+				break;
+			default:
+				break;
+			}
 		}
 	}
 
@@ -122,7 +131,7 @@ public class ProcessingFiles {
 	 * @param element
 	 */
 	private static void traitementPresentation(Element element) {
-		/** Ajout de la presentation dans la BD */
+		/** Ajout de la presentation dans la table Conteneur */
 		DatabaseConnection.insertPresentation();
 		/** Traitement des fils de la presentation */
 		List<Element> childFromPresentation = element.getChildren();
@@ -148,19 +157,69 @@ public class ProcessingFiles {
 	}
 	
 	/**
+	 * Traitement d'une section
+	 * @param element
+	 */
+	private static void traitementSec(Element element) {
+		/** Ajout de la section dans la table Conteneur */
+		DatabaseConnection.insertSec();
+		/** Traitement des fils de la section */
+		List<Element> childFromSection = element.getChildren();
+		Iterator<Element> iteChildFromSection = childFromSection
+				.iterator();
+		while (iteChildFromSection.hasNext()) {
+			Element currentElement = iteChildFromSection.next();
+			switch (currentElement.getName()) {
+			case PHOTO:
+				/** Traitement de la photo */
+				traitementTexte(currentElement);
+				break;
+			case P:
+				/** Traitement du paragraphe */
+				traitementP(currentElement);
+				break;
+			default:
+				/** Traitement de PCDATA (Sous-titre) */
+				traitementTexte(currentElement);
+				break;
+			}
+		}
+	}
+	
+	/**
 	 * Traitement d'une description
 	 * @param element
 	 */
 	public static void traitementDescription(Element element) {
-		
+		/** Ajout de la description dans la table Conteneur */
+		DatabaseConnection.insertDescription();
+		/** Traitement des fils de la description */
+		List<Element> childFromDescription = element.getChildren();
+		Iterator<Element> iteChildFromDescription = childFromDescription
+				.iterator();
+		while (iteChildFromDescription.hasNext()) {
+			Element currentElement = iteChildFromDescription.next();
+			/** Traitement du paragraphe */
+			traitementP(currentElement);
+		}
 	}
 	
 	/**
 	 * Traitement d'un compléments
 	 * @param currentElement
 	 */
-	private static void traitementComplements(Element currentElement) {
-
+	private static void traitementComplements(Element element) {
+		/** Ajout du complément dans la table Conteneur */
+		DatabaseConnection.insertComplements();
+		/** Traitement des fils de complément */
+		List<Element> childFromComplements = element.getChildren();
+		Iterator<Element> iteChildFromComplements = childFromComplements
+				.iterator();
+		while (iteChildFromComplements.hasNext()) {
+			Element currentElement = iteChildFromComplements.next();
+			/** Traitement du paragraphe */
+			traitementP(currentElement);
+		}
 	}
 	
 	/**
@@ -168,8 +227,66 @@ public class ProcessingFiles {
 	 * @param element
 	 * @param nomDoc
 	 */
-	private static void traitementP(Element element, String nomDoc) {
-
+	private static void traitementP(Element element) {
+		/** Ajout de la description dans la table Conteneur */
+		DatabaseConnection.insertP();
+		/** Traitement des fils de la description */
+		List<Element> childFromDescription = element.getChildren();
+		Iterator<Element> iteChildFromDescription = childFromDescription
+				.iterator();
+		while (iteChildFromDescription.hasNext()) {
+			Element currentElement = iteChildFromDescription.next();
+			/**
+			 * Si c'est une liste il faut aller plus loin pour chercher les différents items
+			 * Sinon c'est juste du texte
+			 */
+			switch (currentElement.getName()) {
+			case LISTE:
+				/** Traitement de la description */
+				traitementListe(currentElement);
+				break;
+			default:
+				/** Traitement de PCDATA */
+				traitementTexte(currentElement);
+				break;
+			}
+		}
+	}
+	
+	/**
+	 * Traitement d'une liste
+	 * @param element
+	 * @param nomDoc
+	 */
+	public static void traitementListe(Element element) {
+		/** Ajout de la liste dans la table Conteneur */
+		DatabaseConnection.insertListe();
+		/** Traitement des fils de la liste */
+		List<Element> childFromListe = element.getChildren();
+		Iterator<Element> iteChildFromListe = childFromListe
+				.iterator();
+		while (iteChildFromListe.hasNext()) {
+			Element currentElement = iteChildFromListe.next();
+			traitementItem(currentElement);
+		}
+	}
+	
+	/**
+	 * Traitement d'un item
+	 * @param element
+	 * @param nomDoc
+	 */
+	public static void traitementItem(Element element) {
+		/** Ajout de la liste dans la table Conteneur */
+		DatabaseConnection.insertItem();
+		/** Traitement des fils de la liste */
+		List<Element> childFromListe = element.getChildren();
+		Iterator<Element> iteChildFromListe = childFromListe
+				.iterator();
+		while (iteChildFromListe.hasNext()) {
+			Element currentElement = iteChildFromListe.next();
+			traitementTexte(currentElement);
+		}
 	}
 
 	/**
@@ -190,7 +307,25 @@ public class ProcessingFiles {
 	 * @param pWord
 	 */
 	public static void traitementWord(String pWord) {
-		if(!WordUtils.isInStopList(pWord, stopList)) {
+		pWord = pWord.replaceAll("^-$", "");
+		pWord = pWord.replace("(", "");
+		pWord = pWord.replace(")", "");
+		pWord = pWord.replace(",", "");
+		pWord = pWord.replace("l'", "");
+		pWord = pWord.replace("\n", "");
+		pWord = pWord.replace(".", "");
+		pWord = pWord.replace(":", "");
+		pWord = pWord.replace("?", "");
+		pWord = pWord.replace(" ", "");
+		pWord = pWord.replace("\t", "");
+		pWord = pWord.replace(">", "");
+		pWord = pWord.replace("?", "");
+		pWord = pWord.replace("\"", "");
+		pWord = pWord.replace("", "");
+		pWord = pWord.replace("d'", "");
+		pWord = pWord.replace("s'", "");
+		pWord = pWord.replaceAll("^[0-9]$", "");
+		if(!WordUtils.isInStopList(pWord, stopList) && !pWord.equals("")) {
 			DatabaseConnection.insertWord(WordUtils.transformWord(pWord));
 		}
 	}
