@@ -2,6 +2,7 @@ package databasetable;
 
 //JPA Imports
 import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -14,35 +15,24 @@ import javax.persistence.Table;
 @Table(name = "Position")
 public class ConnectionTablePosition {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	@Column(name = "idConteneur")
-	int idConteneur;
-
-	@Column(name = "idTerme")
-	int idTerme;
+	@EmbeddedId
+	PKPosition pkPosition;
 	
 	@Column(name = "position")
 	int position;
 
+	public PKPosition getPKPosition() {
+		return pkPosition;
+	}
+	
+	public void setPKPosition(PKPosition pkPos) {
+		pkPosition = pkPos;
+	}
+	
+	
 	public ConnectionTablePosition() {
 	}
 
-	public int getIdConteneur() {
-		return idConteneur;
-	}
-
-	public void setIdConteneur(int idConteneur) {
-		this.idConteneur = idConteneur;
-	}
-
-	public int getIdTerme() {
-		return idTerme;
-	}
-
-	public void setIdTerme(int idTerme) {
-		this.idTerme = idTerme;
-	}
 
 	public int getPosition() {
 		return position;

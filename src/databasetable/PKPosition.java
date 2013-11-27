@@ -6,22 +6,22 @@ import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
 @Embeddable
-public class PKOccurrence implements Serializable {
+public class PKPosition implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
-	@Column(name = "nomTerme")
-    private String nomTerme;
+	@Column(name = "idTerme")
+    private int idTerme;
 
     @Column(name = "idConteneur")
     private int idConteneur;
 
-	public String getNomTerme() {
-		return nomTerme;
+	public int getIdTerme() {
+		return idTerme;
 	}
 
-	public void setNomTerme(String nomTerme) {
-		this.nomTerme = nomTerme;
+	public void setIdTerme(int idTerme) {
+		this.idTerme = idTerme;
 	}
 
 	public int getIdConteneur() {

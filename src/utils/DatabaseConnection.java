@@ -8,9 +8,7 @@ import main.ProcessingFiles;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
-import databasetable.ConnectionTableConteneur;
-import databasetable.ConnectionTableDocument;
-import databasetable.ConnectionTableTerme;
+import databasetable.*;
 
 public class DatabaseConnection {
 	
@@ -45,6 +43,7 @@ public class DatabaseConnection {
 		/** Current conteneur */
 		terme.setIdConteneur(getLastIdConteneur());
 		DatabaseConnection.s.save(terme);
+		updateOccurrence(pWord);
 	}
 	
 	/**
@@ -111,10 +110,10 @@ public class DatabaseConnection {
 	/**
 	 * Insert a new paragraphe in the database
 	 */
-	public static void insertP() {
+	public static void insertP(String xpath) {
 		ConnectionTableConteneur con = new ConnectionTableConteneur();
 		con.setTypeConteneur(ProcessingFiles.P);
-		con.setXpathConteneur("");
+		con.setXpathConteneur(xpath);
 		con.setIdDocument(ProcessingFiles.currentIdDocument);
 		DatabaseConnection.s.save(con);
 	}
@@ -155,21 +154,62 @@ public class DatabaseConnection {
 	/** Insert in occurrence */
 	public static void updateOccurrence(String pWord) {
 		/**
-		 * 
-		 * Select dans terme le pWord :
-		 * 	 - On compte le nombre de fois, si il y est une fois on créé une nouvelle ligne dans occurrence
-		 * 	 - Sinon on update le bon terme en augmentant son nbOccurrence de 1
-		 *  /!\ Il faut prendre en compte le conteneur dans lequel il est.
-		 *  
+		 * 1- Select dans occurrence si le mot + currentConteneur existe déjà
+		 * 2- Si oui, je prend la ligne correspondante et j'incrémente nbOccurrences
+		 * 3- Sinon, j'ajoute une nouvelle ligne pour ce mot + currentConteneur et 
+		 * je mets nbOccurrence à 1
 		 */
-		/** SELECT de pWord dans la table Terme */
+		@SuppressWarnings("unchecked")
+		List<ConnectionTableOccurrence> lOccurrence = s.createQuery("FROM ConnectionTableOccurrence WHERE " +
+											  "idConteneur=" + getLastIdConteneur() + " AND " + 
+											  "nomTerme='" + pWord + "'").list();
+		/** To finish with Terme */
+		if(!lOccurrence.isEmpty()) {
+			lOccurrence.get(0).setNbOccurrence(lOccurrence.get(0).getNbOccurrence() + 1);
+			DatabaseConnection.s.update(lOccurrence.get(0));
+		} else {
+			ConnectionTableOccurrence occ = new ConnectionTableOccurrence();
+			PKOccurrence pkOcc = new PKOccurrence();
+			pkOcc.setIdConteneur(getLastIdConteneur());
+			pkOcc.setNomTerme(pWord);
+			occ.setPkOccurrence(pkOcc);
+			occ.setNbOccurrence(1);
+			DatabaseConnection.s.save(occ);
+		}
+		insertPosition();
 	}
 	
+	private static void insertPosition() {
+		ConnectionTablePosition pos = new ConnectionTablePosition();
+		PKPosition pkPos = new PKPosition();
+		pkPos.setIdConteneur(getLastIdConteneur());
+		pkPos.setIdTerme(getLastIdTerme());
+		pos.setPKPosition(pkPos);		
+		pos.setPosition(++ProcessingFiles.currentWordPos);
+		DatabaseConnection.s.save(pos);
+	}
+
 	/** Get last idConteneur in the table Conteneur */
 	public static int getLastIdConteneur() {
 		@SuppressWarnings("unchecked")
 		List<Integer> lIds = s.createSQLQuery("SELECT idConteneur from Conteneur "
 				+ "ORDER BY idConteneur DESC "
+				+ "LIMIT 1;").list();
+		if(lIds.get(0) == null) {
+			try {
+				throw new Exception("Error during retrieving last conteneur Id");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return lIds.get(0);
+	}
+	
+	/** Get last idTerme in the table Terme */
+	public static int getLastIdTerme() {
+		@SuppressWarnings("unchecked")
+		List<Integer> lIds = s.createSQLQuery("SELECT idTerme from Terme "
+				+ "ORDER BY idTerme DESC "
 				+ "LIMIT 1;").list();
 		if(lIds.get(0) == null) {
 			try {

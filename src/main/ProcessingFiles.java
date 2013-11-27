@@ -3,6 +3,7 @@ package main;
 import java.io.File;
 import java.util.Iterator;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import org.hibernate.Query;
 import org.jdom2.Document;
@@ -34,7 +35,10 @@ public class ProcessingFiles {
 	
 	public static int currentIdDocument;
 	public static List<String> stopList;
-
+	
+	public static int currentIdParent = 0;
+	public static int currentIdElement = 0;
+	public static int currentWordPos = 0;
 	
 	/**
 	 * Parse all documents
@@ -49,18 +53,18 @@ public class ProcessingFiles {
 		/** Traitement des fichiers un par un */
 		SAXBuilder sxb = new SAXBuilder();
 		try {
-			for (int fileId = 0; fileId < allFiles.length; fileId++) {
+			//for (int fileId = 0; fileId < allFiles.length; fileId++) {
 				Document document = sxb.build(new File(MAIN_DIRECTORY
-						.getAbsolutePath() + "/collection/" + allFiles[fileId]));
+						.getAbsolutePath() + "/collection/" + allFiles[0]));
 				/** Sauvegarde du document dans la BD */
-				DatabaseConnection.insertDocument(allFiles[fileId]);
+				DatabaseConnection.insertDocument(allFiles[0]);
 				/** MAJ currentIdDocument */
-				setCurrentIdDocument(allFiles[fileId]);
+				setCurrentIdDocument(allFiles[0]);
 				/** Element racine (BALADE) */
 				Element racine = document.getRootElement();
-				parsingDocument(racine, allFiles[fileId]);
+				parsingDocument(racine, allFiles[0]);
 
-			}
+			//}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -78,14 +82,20 @@ public class ProcessingFiles {
 			Element currentElement = iteChildFromRacine.next();
 			switch (currentElement.getName()) {
 			case PRESENTATION:
+				currentIdParent = 0;
+				currentIdElement = 0;
 				/** Traitement de la presentation : DONE*/
 				traitementPresentation(currentElement);
 				break;
 			case RECIT:
+				currentIdParent = 0;
+				currentIdElement = 0;
 				/** Traitement du recit : DOING*/
 				traitementRecit(currentElement);
 				break;
 			case COMPLEMENTS:
+				currentIdParent = 0;
+				currentIdElement = 0;
 				/** Traitement du Complement : DONE*/
 				traitementComplements(currentElement);
 				break;
@@ -145,6 +155,7 @@ public class ProcessingFiles {
 			 */
 			switch (currentElement.getName()) {
 			case DESCRIPTION:
+				currentIdParent++;
 				/** Traitement de la description */
 				traitementDescription(currentElement);
 				break;
@@ -161,6 +172,8 @@ public class ProcessingFiles {
 	 * @param element
 	 */
 	private static void traitementSec(Element element) {
+		currentIdParent++;
+		currentIdElement = 0;
 		/** Ajout de la section dans la table Conteneur */
 		DatabaseConnection.insertSec();
 		/** Traitement des fils de la section */
@@ -228,27 +241,35 @@ public class ProcessingFiles {
 	 * @param nomDoc
 	 */
 	private static void traitementP(Element element) {
+		currentIdElement++;
 		/** Ajout de la description dans la table Conteneur */
-		DatabaseConnection.insertP();
+		String xpath = ("(/BALADE[1]/" + element.getParentElement().getParentElement().getName() +
+						   "[1]/" + element.getParentElement().getName() + "[" + currentIdParent + 
+						   "]/P[" + currentIdElement + "])");
+		DatabaseConnection.insertP(xpath);
 		/** Traitement des fils de la description */
 		List<Element> childFromDescription = element.getChildren();
 		Iterator<Element> iteChildFromDescription = childFromDescription
 				.iterator();
-		while (iteChildFromDescription.hasNext()) {
-			Element currentElement = iteChildFromDescription.next();
-			/**
-			 * Si c'est une liste il faut aller plus loin pour chercher les différents items
-			 * Sinon c'est juste du texte
-			 */
-			switch (currentElement.getName()) {
-			case LISTE:
-				/** Traitement de la description */
-				traitementListe(currentElement);
-				break;
-			default:
-				/** Traitement de PCDATA */
-				traitementTexte(currentElement);
-				break;
+		if(!iteChildFromDescription.hasNext()) {
+			traitementTexte(element);
+		} else {
+			while (iteChildFromDescription.hasNext()) {
+				Element currentElement = iteChildFromDescription.next();
+				/**
+				 * Si c'est une liste il faut aller plus loin pour chercher les différents items
+				 * Sinon c'est juste du texte
+				 */
+				switch (currentElement.getName()) {
+				case LISTE:
+					/** Traitement de la description */
+					traitementListe(currentElement);
+					break;
+				default:
+					/** Traitement de PCDATA */
+					traitementTexte(currentElement);
+					break;
+				}
 			}
 		}
 	}
@@ -294,11 +315,11 @@ public class ProcessingFiles {
 	 * @param element
 	 */
 	public static void traitementTexte(Element element) {
-		String[] lWords = element.getText().split(" ");
-		int lCptWords = 0 ;
-		while(lCptWords < lWords.length) {
-			traitementWord(lWords[lCptWords].toLowerCase());
-			lCptWords++;
+		StringTokenizer tokenizer = new StringTokenizer(element.getText());
+		currentWordPos = 0;
+		while(tokenizer.hasMoreTokens()) {
+			
+			traitementWord(tokenizer.nextToken().toLowerCase());
 		}
 	}
 	 
@@ -323,7 +344,10 @@ public class ProcessingFiles {
 		pWord = pWord.replace("\"", "");
 		pWord = pWord.replace("", "");
 		pWord = pWord.replace("d'", "");
+		pWord = pWord.replace("c'", "");
 		pWord = pWord.replace("s'", "");
+		pWord = pWord.replace("n'", "");
+		pWord = pWord.replace("'", "");
 		pWord = pWord.replaceAll("^[0-9]$", "");
 		if(!WordUtils.isInStopList(pWord, stopList) && !pWord.equals("")) {
 			DatabaseConnection.insertWord(WordUtils.transformWord(pWord));

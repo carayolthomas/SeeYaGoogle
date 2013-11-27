@@ -1,47 +1,30 @@
 package databasetable;
 
 //JPA Imports
+import java.io.Serializable;
+
 import javax.persistence.Column;
+import javax.persistence.Embeddable;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
 import javax.persistence.Table;
 
 //End JPA Imports
 
+
 @Entity
 @Table(name = "Occurrence")
-public class ConnectionTableOccurrence {
+public class ConnectionTableOccurrence implements Serializable {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	@Column(name = "idConteneur")
-	int idConteneur;
+	private static final long serialVersionUID = 1L;
 
-	@Column(name = "idTerme")
-	int idTerme;
+	@EmbeddedId
+	PKOccurrence pkOccurrence;
 
 	@Column(name = "nbOccurrence")
 	int nbOccurrence;
 	
 	public ConnectionTableOccurrence() {
-	}
-
-	public int getIdConteneur() {
-		return idConteneur;
-	}
-
-	public void setIdConteneur(int idConteneur) {
-		this.idConteneur = idConteneur;
-	}
-
-	public int getIdTerme() {
-		return idTerme;
-	}
-
-	public void setIdTerme(int idTerme) {
-		this.idTerme = idTerme;
 	}
 
 	public int getNbOccurrence() {
@@ -51,6 +34,15 @@ public class ConnectionTableOccurrence {
 	public void setNbOccurrence(int nbOccurrence) {
 		this.nbOccurrence = nbOccurrence;
 	}
+	
+	public PKOccurrence getPkOccurrence() {
+		return pkOccurrence;
+	}
 
+	public void setPkOccurrence(PKOccurrence pkOccurrence) {
+		this.pkOccurrence = pkOccurrence;
+	}
 	
 }
+
+
