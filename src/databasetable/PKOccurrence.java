@@ -15,6 +15,9 @@ public class PKOccurrence implements Serializable {
 
     @Column(name = "idConteneur")
     private int idConteneur;
+    
+    @Column(name = "idDocument")
+    private int idDocument;
 
 	public String getNomTerme() {
 		return nomTerme;
@@ -30,5 +33,13 @@ public class PKOccurrence implements Serializable {
 
 	public void setIdConteneur(int idConteneur) {
 		this.idConteneur = idConteneur;
+	}
+
+	public int getIdDocument() {
+		return idDocument;
+	}
+
+	public void setIdDocument(int idDocument) {
+		this.idDocument = idDocument;
 	}
 }

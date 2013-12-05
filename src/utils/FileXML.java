@@ -43,8 +43,8 @@ public class FileXML {
 		return null;
 	}
 
-	public static String[] checkAllXMLFiles() {
-		File repertoire = new File(ProcessingFiles.MAIN_DIRECTORY + "/collection/");
+	public static String[] checkAllXMLFiles(String pDir) {
+		File repertoire = new File(ProcessingFiles.MAIN_DIRECTORY + "/" + pDir + "/");
 		String[] listXMLFiles;
 		
 		FilenameFilter filter = new FilenameFilter() {

@@ -33,12 +33,15 @@ public class ProcessingFiles {
 	
 	public static Query q;
 	
-	public static int currentIdDocument;
 	public static List<String> stopList;
 	
 	public static int currentIdParent = 0;
 	public static int currentIdElement = 0;
 	public static int currentWordPos = 0;
+	
+	public static int currentIdDocument;
+	public static int currentIdTerme;
+	public static int currentIdConteneur;
 	
 	/**
 	 * Parse all documents
@@ -48,23 +51,23 @@ public class ProcessingFiles {
 		stopList = WordUtils.loadStopList();
 		
 		/** Liste de tous les fichiers */
-		String[] allFiles = FileXML.checkAllXMLFiles();
+		String[] allFiles = FileXML.checkAllXMLFiles("collection");
 
 		/** Traitement des fichiers un par un */
 		SAXBuilder sxb = new SAXBuilder();
 		try {
-			//for (int fileId = 0; fileId < allFiles.length; fileId++) {
+			for (int fileId = 0; fileId < allFiles.length; fileId++) {
+				/** Num fichier pour debug */
+				System.out.println(allFiles[fileId]);
 				Document document = sxb.build(new File(MAIN_DIRECTORY
-						.getAbsolutePath() + "/collection/" + allFiles[0]));
+						.getAbsolutePath() + "/collection/" + allFiles[fileId]));
 				/** Sauvegarde du document dans la BD */
-				DatabaseConnection.insertDocument(allFiles[0]);
-				/** MAJ currentIdDocument */
-				setCurrentIdDocument(allFiles[0]);
+				DatabaseConnection.insertDocument(allFiles[fileId]);
 				/** Element racine (BALADE) */
 				Element racine = document.getRootElement();
-				parsingDocument(racine, allFiles[0]);
+				parsingDocument(racine, allFiles[fileId]);
 
-			//}
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -363,24 +366,6 @@ public class ProcessingFiles {
 		parseAllDocuments();
 		DatabaseConnection.t.commit();
 		DatabaseConnection.endConnect();
-	}
-	
-	/**
-	 * Set the current id document
-	 * @param pNomDocument
-	 */
-	public static void setCurrentIdDocument(String pNomDocument) {
-		@SuppressWarnings("unchecked")
-		List<Integer> lIds = DatabaseConnection.s.createQuery("SELECT idDocument FROM ConnectionTableDocument WHERE nomDocument='" + pNomDocument + "'").list();
-		if(!lIds.isEmpty() && lIds.size() == 1) {
-			currentIdDocument = lIds.get(0);
-		} else {
-			try {
-				throw new Exception("Problem with setCurrentIdDocument");
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
 	}
 }
 

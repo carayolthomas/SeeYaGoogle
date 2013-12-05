@@ -41,8 +41,9 @@ public class DatabaseConnection {
 		ConnectionTableTerme terme = new ConnectionTableTerme();
 		terme.setNomTerme(pWord);
 		/** Current conteneur */
-		terme.setIdConteneur(getLastIdConteneur());
+		terme.setIdConteneur(ProcessingFiles.currentIdConteneur);
 		DatabaseConnection.s.save(terme);
+		ProcessingFiles.currentIdTerme = getLastIdTerme();
 		updateOccurrence(pWord);
 	}
 	
@@ -61,6 +62,7 @@ public class DatabaseConnection {
 		ConnectionTableDocument doc = new ConnectionTableDocument();
 		doc.setNomDocument(name);
 		DatabaseConnection.s.save(doc);
+		ProcessingFiles.currentIdDocument = getLastIdDocument();
 	}
 	
 	/**
@@ -72,6 +74,7 @@ public class DatabaseConnection {
 		con.setXpathConteneur("");
 		con.setIdDocument(ProcessingFiles.currentIdDocument);
 		DatabaseConnection.s.save(con);
+		ProcessingFiles.currentIdConteneur = getLastIdConteneur();
 	}
 	
 	/**
@@ -83,6 +86,7 @@ public class DatabaseConnection {
 		con.setXpathConteneur("");
 		con.setIdDocument(ProcessingFiles.currentIdDocument);
 		DatabaseConnection.s.save(con);
+		ProcessingFiles.currentIdConteneur = getLastIdConteneur();
 	}
 	
 	/**
@@ -94,6 +98,7 @@ public class DatabaseConnection {
 		con.setXpathConteneur("");
 		con.setIdDocument(ProcessingFiles.currentIdDocument);
 		DatabaseConnection.s.save(con);
+		ProcessingFiles.currentIdConteneur = getLastIdConteneur();
 	}
 	
 	/**
@@ -105,6 +110,7 @@ public class DatabaseConnection {
 		con.setXpathConteneur("");
 		con.setIdDocument(ProcessingFiles.currentIdDocument);
 		DatabaseConnection.s.save(con);
+		ProcessingFiles.currentIdConteneur = getLastIdConteneur();
 	}
 	
 	/**
@@ -116,6 +122,7 @@ public class DatabaseConnection {
 		con.setXpathConteneur(xpath);
 		con.setIdDocument(ProcessingFiles.currentIdDocument);
 		DatabaseConnection.s.save(con);
+		ProcessingFiles.currentIdConteneur = getLastIdConteneur();
 	}
 	
 	/**
@@ -127,6 +134,7 @@ public class DatabaseConnection {
 		con.setXpathConteneur("");
 		con.setIdDocument(ProcessingFiles.currentIdDocument);
 		DatabaseConnection.s.save(con);
+		ProcessingFiles.currentIdConteneur = getLastIdConteneur();
 	}
 	
 	/**
@@ -138,6 +146,7 @@ public class DatabaseConnection {
 		con.setXpathConteneur("");
 		con.setIdDocument(ProcessingFiles.currentIdDocument);
 		DatabaseConnection.s.save(con);
+		ProcessingFiles.currentIdConteneur = getLastIdConteneur();
 	}
 	
 	/**
@@ -149,6 +158,7 @@ public class DatabaseConnection {
 		con.setXpathConteneur("");
 		con.setIdDocument(ProcessingFiles.currentIdDocument);
 		DatabaseConnection.s.save(con);
+		ProcessingFiles.currentIdConteneur = getLastIdConteneur();
 	}
 	
 	/** Insert in occurrence */
@@ -161,7 +171,7 @@ public class DatabaseConnection {
 		 */
 		@SuppressWarnings("unchecked")
 		List<ConnectionTableOccurrence> lOccurrence = s.createQuery("FROM ConnectionTableOccurrence WHERE " +
-											  "idConteneur=" + getLastIdConteneur() + " AND " + 
+											  "idConteneur=" + ProcessingFiles.currentIdConteneur + " AND " + 
 											  "nomTerme='" + pWord + "'").list();
 		/** To finish with Terme */
 		if(!lOccurrence.isEmpty()) {
@@ -170,8 +180,9 @@ public class DatabaseConnection {
 		} else {
 			ConnectionTableOccurrence occ = new ConnectionTableOccurrence();
 			PKOccurrence pkOcc = new PKOccurrence();
-			pkOcc.setIdConteneur(getLastIdConteneur());
+			pkOcc.setIdConteneur(ProcessingFiles.currentIdConteneur);
 			pkOcc.setNomTerme(pWord);
+			pkOcc.setIdDocument(ProcessingFiles.currentIdDocument);
 			occ.setPkOccurrence(pkOcc);
 			occ.setNbOccurrence(1);
 			DatabaseConnection.s.save(occ);
@@ -182,11 +193,16 @@ public class DatabaseConnection {
 	private static void insertPosition() {
 		ConnectionTablePosition pos = new ConnectionTablePosition();
 		PKPosition pkPos = new PKPosition();
-		pkPos.setIdConteneur(getLastIdConteneur());
-		pkPos.setIdTerme(getLastIdTerme());
+		pkPos.setIdConteneur(ProcessingFiles.currentIdConteneur);
+		pkPos.setIdTerme(ProcessingFiles.currentIdTerme);
 		pos.setPKPosition(pkPos);		
 		pos.setPosition(++ProcessingFiles.currentWordPos);
 		DatabaseConnection.s.save(pos);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static List<ConnectionTableOccurrence> getOccurrenceRowByDocument() {
+		return s.createQuery("FROM ConnectionTableOccurrence").list();
 	}
 
 	/** Get last idConteneur in the table Conteneur */
@@ -220,5 +236,20 @@ public class DatabaseConnection {
 		}
 		return lIds.get(0);
 	}
-
+	
+	/** Get last idDocument in the table Document */
+	public static int getLastIdDocument() {
+		@SuppressWarnings("unchecked")
+		List<Integer> lIds = s.createSQLQuery("SELECT idDocument from Document "
+				+ "ORDER BY idDocument DESC "
+				+ "LIMIT 1;").list();
+		if(lIds.get(0) == null) {
+			try {
+				throw new Exception("Error during retrieving last conteneur Id");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return lIds.get(0);
+	}
 }
