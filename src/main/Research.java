@@ -27,9 +27,8 @@ public class Research {
 	public static List<ConnectionTableConteneur> listConteneur;
 	public static int NB_RESULT = 5;
 
-	public static List<ResultQuery> answerQuery() {
+	public static List<ConnectionTableOccurrence> answerQuery() {
 		/** Récupération de la table Occurrence */
-		listOccurrence = DatabaseConnection.getOccurrenceRowByDocument();
 		listOccurrenceMatched = new ArrayList<ConnectionTableOccurrence>();
 
 		/**
@@ -43,34 +42,23 @@ public class Research {
 				ConnectionTableOccurrence lOccurrence = iteOccurence.next();
 				if (lOccurrence.getPkOccurrence().getNomTerme().equals(mot)) {
 					/** Pour chaque mot on applique un traitement sur le tf/idf */
-					listOccurrenceMatched
-							.add(traitementOccurrence(lOccurrence));
+					if(traitementOccurrence(lOccurrence) != null) {
+						listOccurrenceMatched.add(lOccurrence);
+					}
 				}
 			}
 		}
 
 		/** On tri ensuite cette liste par ordre croissant tf/idf */
-		Collections.sort(listOccurrenceMatched,
-				new Comparator<ConnectionTableOccurrence>() {
-					@Override
-					public int compare(ConnectionTableOccurrence tc1,
-							ConnectionTableOccurrence tc2) {
-						if (tc1.getTfidf() > tc2.getTfidf()) {
-							return 1;
-						} else if (tc1.getTfidf() == tc2.getTfidf()) {
-							return 0;
-						} else {
-							return -1;
-						}
-					}
-				});
+		Collections.sort(listOccurrenceMatched);
 
 		/** On affiche ensuite le résultat suivant NB_RESULT */
 		int cpt = 0;
-		List<ResultQuery> results = new ArrayList<ResultQuery>();
-		for (ConnectionTableConteneur l : listConteneur) {
-			results.add(new ResultQuery("Collection/" + getNomDocument(l), l.getXpathConteneur()));
-			System.out.println("---------- DEBUG : " + "Collection/" + getNomDocument(l) + "\t" + l.getXpathConteneur());
+		List<ConnectionTableOccurrence> results = new ArrayList<ConnectionTableOccurrence>();
+		for (ConnectionTableOccurrence l : listOccurrenceMatched) {
+			results.add(l);
+			//System.out.println("ConnectionTableOccurrence added : " + l.toString());
+			cpt++;
 			if (cpt > 5) {
 				break;
 			}
@@ -86,59 +74,52 @@ public class Research {
 		return lDoc.get(0).getNomDocument();
 	}
 
-	@SuppressWarnings("unchecked")
+	/**
+	 * Permet de garder uniquement les paragraphes
+	 * @param lOccurrence
+	 * @return
+	 */
 	private static ConnectionTableOccurrence traitementOccurrence(
 			ConnectionTableOccurrence lOccurrence) {
-		listConteneur = DatabaseConnection.s.createQuery(
-				"FROM ConnectionTableConteneur c WHERE c.idConteneur ="
-						+ lOccurrence.getPkOccurrence().getIdConteneur())
-				.list();
-		for (ConnectionTableConteneur ctc : listConteneur) {
-			switch (ctc.getTypeConteneur()) {
+		ConnectionTableConteneur associatedConteneur = getConteneurFromOccurrence(lOccurrence);
+		if(associatedConteneur.getTypeConteneur().equals(ProcessingFiles.P)) {
+			return lOccurrence;
+		} else {
+			return null;
+		}
+		
+		/** TODO
+		 * Si le mot est dans le titre, modifie toutes les occurences de ce
+		 * moment dans ce doc : -> Rajouter du poids aux occurrences des
+		 * mots dans le § quand il est dans le titre
+		 */
+	}
 
-			/**
-			 * Si le mot est dans le titre, modifie toutes les occurences de ce
-			 * moment dans ce doc : -> Rajouter du poids aux occurrences des
-			 * mots dans le § quand il est dans le titre
-			 */
-			case ProcessingFiles.TITRE:
-				Iterator<ConnectionTableOccurrence> iteOccurence = listOccurrence
-						.iterator();
-				while (iteOccurence.hasNext()) {
-					ConnectionTableOccurrence nOccurrence = iteOccurence.next();
-					if (nOccurrence.getPkOccurrence().getIdDocument() == lOccurrence
-							.getPkOccurrence().getIdDocument()) {
-						nOccurrence.setTfidf(nOccurrence.getTfidf() * 2);
-					}
-				}
-				break;
-
-			default:
-				break;
+	private static ConnectionTableConteneur getConteneurFromOccurrence(
+			ConnectionTableOccurrence lOccurrence) {
+		Iterator<ConnectionTableConteneur> iteListConteneur = listConteneur.iterator();
+		while(iteListConteneur.hasNext()) {
+			ConnectionTableConteneur currentConteneur = iteListConteneur.next();
+			if(currentConteneur.getIdConteneur() == lOccurrence.getPkOccurrence().getIdConteneur()) {
+				return currentConteneur;
 			}
 		}
 		return null;
 	}
 
+	@SuppressWarnings("unchecked")
 	public static void main(String[] args) {
-		/*List<Query> list = ParseForResearch.parseQuery();
-		Iterator<Query> ite = list.iterator();
-		while(ite.hasNext()) {
-			System.out.println(ite.next().toString());
-		}
-		
-		System.out.println("-----------------------------------------");
-		
-		List<Qrel> list1 = ParseForResearch.parseQrels("01");
-		Iterator<Qrel> ite1 = list1.iterator();
-		while(ite1.hasNext()) {
-			System.out.println(ite1.next().toString());
-		}*/
-		
 		/** Init connection database */
 		DatabaseConnection.doConnect();
+		System.out.println("Database Connected.");
+		/** Je load la table Occurrence */
+		listOccurrence = DatabaseConnection.getOccurrenceRowByDocument();
+		/** Je load la table Conteneur */
+		listConteneur = DatabaseConnection.s.createQuery("FROM ConnectionTableConteneur").list();
+		System.out.println("Occurrence Imported.");
 		/** Je load la stopList */
 		stopList = WordUtils.loadStopList();
+		System.out.println("Stop List Loaded.");
 		/** 
 		 * Prendre les requetes une par une puis
 		 * Regarder si la liste de xpath retournée 
@@ -149,9 +130,10 @@ public class Research {
 		while(iteQuery.hasNext()) {
 			/** Query courante */
 			Query currentQuery = iteQuery.next();
+			System.out.println("---- Query : " + currentQuery.getIdQuery());
 			StringTokenizer tokenizer = new StringTokenizer(currentQuery.getTextQuery());
 			/** Je vide research */
-			research.clear();
+			research = new ArrayList<String>();
 			/** Parse the request */
 			while (tokenizer.hasMoreTokens()) {
 				String mot = tokenizer.nextToken().toLowerCase();
@@ -160,47 +142,52 @@ public class Research {
 				}
 			}
 			/** Do the research  : Map<NomDocument,XPATH> */
-			List<ResultQuery> resultsResearch = answerQuery();
+			System.out.println("Answer Query Started.");
+			List<ConnectionTableOccurrence> resultsResearch = answerQuery();
 			/** Tmp List<ResultQuery> resultsResearch */
+			System.out.println("Treatment of the response.");
 			List<ResultQuery> resultsResearchTemp = new ArrayList<ResultQuery>();
+			/** Fill the results */
+			for(ConnectionTableOccurrence currentOccurrence : resultsResearch) {
+				ConnectionTableConteneur currentConteneur = getConteneurFromOccurrence(currentOccurrence);
+				/** Build the prefixe */
+				String prefIdDocument;
+				if(String.valueOf(currentConteneur.getIdDocument()).length() == 1) {
+					prefIdDocument = "d00";
+				} else {
+					if(String.valueOf(currentConteneur.getIdDocument()).length() == 2) {
+						prefIdDocument = "d0";
+					} else {
+						prefIdDocument = "d";
+					}
+				}
+				resultsResearchTemp.add(new ResultQuery("Collection/" + prefIdDocument + currentConteneur.getIdDocument() + ".xml", currentConteneur.getXpathConteneur().replaceAll("[()]", "")));
+			}
 			/** Check if the result is fine */
-			List<Qrel> listQrel = ParseForResearch.parseQrels(currentQuery.getIdQuery().replace("p", ""));
+			List<ResultQuery> resultsResearchFinal = new ArrayList<ResultQuery>();
+			List<Qrel> listQrel = ParseForResearch.parseQrels(currentQuery.getIdQuery().replace("q", ""));
 			Iterator<Qrel> iteQrel = listQrel.iterator();
 			while(iteQrel.hasNext()) {
 				Qrel currentQrel = iteQrel.next();
-				if(resultsResearch.contains(new ResultQuery(currentQrel.getDocQrel(), currentQrel.getXpathQrel()))) {
-					if(currentQrel.getPertinanceQrel().equals("1")) {
-						resultsResearchTemp.add(new ResultQuery(currentQrel.getDocQrel(), currentQrel.getXpathQrel()));
+				for(ResultQuery rq : resultsResearchTemp) {
+					System.out.println(rq.getNomDocument() + " / " + currentQrel.getDocQrel() + " --- " + rq.getXpath() + " / " + currentQrel.getXpathQrel());
+					if(rq.getNomDocument().equals(currentQrel.getDocQrel()) && rq.getXpath().equals(currentQrel.getXpathQrel())) {
+						System.out.println("lol");
+						if(currentQrel.getPertinanceQrel().equals("1")) {
+							resultsResearchFinal.add(new ResultQuery(currentQrel.getDocQrel(), currentQrel.getXpathQrel()));
+						}
 					}
 				}
+				break;
+				/** REVOIR LES XPATH */
 			}
 			/** Donne un % à la requete */
-			float percentSuccess = (resultsResearchTemp.size() / NB_RESULT) * 100;
+			float percentSuccess = (resultsResearchFinal.size() / NB_RESULT) * 100;
 			System.out.println("----> Query n°" + currentQuery.getIdQuery().replace("p", "") 
 							+  " : " + percentSuccess + "%");
+			break;
 		}
 		/** Close database connection */
 		DatabaseConnection.endConnect();
-		
-		
-		
-		
-		/*DatabaseConnection.doConnect();
-		@SuppressWarnings("resource")
-		Scanner sc = new Scanner(System.in);
-		System.out.println("Veuillez saisir la rechercher :");
-		String search = sc.nextLine();
-		stopList = WordUtils.loadStopList();
-		research = new ArrayList<String>();
-		StringTokenizer tokenizer = new StringTokenizer(search);
-		while (tokenizer.hasMoreTokens()) {
-			String mot = tokenizer.nextToken().toLowerCase();
-			if (!WordUtils.isInStopList(mot, stopList) && !mot.equals("")) {
-				research.add(WordUtils.transformWord(mot));
-			}
-		}
-		System.out.println("-------- DEBUG : " + research.toString());
-		answerQuery();
-		DatabaseConnection.endConnect();*/
 	}
 }

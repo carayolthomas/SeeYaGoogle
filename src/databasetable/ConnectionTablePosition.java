@@ -42,5 +42,12 @@ public class ConnectionTablePosition {
 		this.position = position;
 	}
 
+	@Override
+	public String toString() {
+		return "ConnectionTablePosition [idConteneur=" + pkPosition.getIdConteneur()
+				+ ", idTerme=" + pkPosition.getIdTerme()
+				+ ", position=" + position + "]";
+	}
+
 	
 }

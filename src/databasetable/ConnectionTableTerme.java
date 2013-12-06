@@ -52,5 +52,10 @@ public class ConnectionTableTerme {
 		this.idConteneur = idConteneur;
 	}
 
+	@Override
+	public String toString() {
+		return "ConnectionTableTerme [idTerme=" + idTerme + ", nomTerme="
+				+ nomTerme + ", idConteneur=" + idConteneur + "]";
+	}
 	
 }

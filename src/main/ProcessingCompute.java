@@ -4,23 +4,23 @@ import java.util.Iterator;
 import java.util.List;
 
 import utils.DatabaseConnection;
+import utils.MemoryConnection;
 import databasetable.ConnectionTableOccurrence;
 
 public class ProcessingCompute {
-
-	public static List<ConnectionTableOccurrence> listOccurrence;
 	
 	public static void computeFreq() {
 		/** 
 		 * On parcours les lignes de la table Occurrence et on complete 
 		 * la colonne TF
 		 */
-		Iterator<ConnectionTableOccurrence> iteOccurence = listOccurrence.iterator();
+		int lIndexOccurrence = 0;
+		Iterator<ConnectionTableOccurrence> iteOccurence = MemoryConnection.tableOccurrence.iterator();
 		while(iteOccurence.hasNext()) {
 			ConnectionTableOccurrence lOccurrence = iteOccurence.next();
-			int nbWords = countNbWordInConteneur(lOccurrence.getPkOccurrence().getIdConteneur(), listOccurrence);
-			lOccurrence.setTf((float)((float) lOccurrence.getNbOccurrence() / (float) nbWords));
-			DatabaseConnection.s.update(lOccurrence);
+			int nbWords = countNbWordInConteneur(lOccurrence.getPkOccurrence().getIdConteneur(), MemoryConnection.tableOccurrence);
+			MemoryConnection.tableOccurrence.get(lIndexOccurrence).setTf((float)((float) lOccurrence.getNbOccurrence() / (float) nbWords));
+			lIndexOccurrence++;
 		}
 	}
 	
@@ -45,25 +45,30 @@ public class ProcessingCompute {
 		 * Nombre total de P dans le document / nombre de P où le terme apparait
 		 * Pour un terme, il faut savoir dans combien de paragraphe il apparait
 		 */
-		Iterator<ConnectionTableOccurrence> iteOccurence = listOccurrence.iterator();
+		int lIndexOccurrence = 0;
+		Iterator<ConnectionTableOccurrence> iteOccurence = MemoryConnection.tableOccurrence.iterator();
 		while(iteOccurence.hasNext()) {
 			ConnectionTableOccurrence lOccurrence = iteOccurence.next();
-			@SuppressWarnings("unchecked")
-			//TODO : UTILISER HIBERNATE POUR LE COUNT
-			List<java.math.BigInteger> lListCount = DatabaseConnection.s.createSQLQuery("SELECT COUNT(*) FROM Occurrence WHERE "
-					+ "nomTerme='" + lOccurrence.getPkOccurrence().getNomTerme() +
-					"' AND idConteneur!=" + lOccurrence.getPkOccurrence().getIdConteneur() + 
-					" AND idDocument=" + lOccurrence.getPkOccurrence().getIdDocument() + ";").list();
-			lOccurrence.setIdf(Math.log(
-					(double)(countNbConteneurInDocument(lOccurrence.getPkOccurrence().getIdDocument(), listOccurrence))
-					/(double)(lListCount.get(0).floatValue() + 1.)));
-			DatabaseConnection.s.update(lOccurrence);
+			double countResult = 0;
+			Iterator<ConnectionTableOccurrence> iteOccurenceInner = MemoryConnection.tableOccurrence.iterator();
+			while(iteOccurenceInner.hasNext()) {
+				ConnectionTableOccurrence lOccurrenceInner = iteOccurenceInner.next();
+				if(lOccurrenceInner.getPkOccurrence().getNomTerme().equals(lOccurrence.getPkOccurrence().getNomTerme()) &&
+						lOccurrenceInner.getPkOccurrence().getIdConteneur() == lOccurrence.getPkOccurrence().getIdConteneur() &&
+						lOccurrenceInner.getPkOccurrence().getIdDocument() == lOccurrence.getPkOccurrence().getIdDocument()) {
+					countResult++;
+				}
+			}
+			MemoryConnection.tableOccurrence.get(lIndexOccurrence).setIdf(Math.log(
+					(double)(countNbConteneurInDocument(lOccurrence.getPkOccurrence().getIdDocument()))
+					/(double)(countResult + 1.)));
+			lIndexOccurrence++;
 		}
 	}
 	
-	private static int countNbConteneurInDocument(int idDocument, List<ConnectionTableOccurrence> listOccurrence) {
+	private static int countNbConteneurInDocument(int idDocument) {
 		int numConteneur = 0;
-		Iterator<ConnectionTableOccurrence> iteOccurence = listOccurrence.iterator();
+		Iterator<ConnectionTableOccurrence> iteOccurence = MemoryConnection.tableOccurrence.iterator();
 		while(iteOccurence.hasNext()) {
 			ConnectionTableOccurrence lOccurrence = iteOccurence.next();
 			if(lOccurrence.getPkOccurrence().getIdDocument() == idDocument && lOccurrence.getPkOccurrence().getIdConteneur() > numConteneur) {
@@ -74,25 +79,18 @@ public class ProcessingCompute {
 	}
 	
 	public static void computeTFIDF() {
-		Iterator<ConnectionTableOccurrence> iteOccurence = listOccurrence.iterator();
+		Iterator<ConnectionTableOccurrence> iteOccurence = MemoryConnection.tableOccurrence.iterator();
+		int lIndexOccurrence = 0;
 		while(iteOccurence.hasNext()) {
 			ConnectionTableOccurrence lOccurrence = iteOccurence.next();
-			lOccurrence.setTfidf(lOccurrence.getIdf() * lOccurrence.getTf());
-			DatabaseConnection.s.update(lOccurrence);
+			MemoryConnection.tableOccurrence.get(lIndexOccurrence).setTfidf(lOccurrence.getIdf() * lOccurrence.getTf());
+			lIndexOccurrence++;
 		}
 	}
 	
-	/**
-	 * Main
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		DatabaseConnection.doConnect();
-		listOccurrence = DatabaseConnection.getOccurrenceRowByDocument();
+	public static void doCompute() {
 		computeFreq();
 		computeInvFreq();
 		computeTFIDF();
-		DatabaseConnection.t.commit();
-		DatabaseConnection.endConnect();
 	}
 }

@@ -13,7 +13,7 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name = "Occurrence")
-public class ConnectionTableOccurrence implements Serializable {
+public class ConnectionTableOccurrence implements Serializable, Comparable<ConnectionTableOccurrence> {
 
 	private static final long serialVersionUID = 1L;
 
@@ -77,10 +77,27 @@ public class ConnectionTableOccurrence implements Serializable {
 
 	@Override
 	public String toString() {
-		return "ConnectionTableOccurrence [pkOccurrence=" + pkOccurrence
+		return "ConnectionTableOccurrence [idConteneur=" + pkOccurrence.getIdConteneur()
+				+ ", idDocument=" + pkOccurrence.getIdDocument()
+				+ ", nomTerme=" + pkOccurrence.getNomTerme()
 				+ ", nbOccurrence=" + nbOccurrence + ", tf=" + tf + ", idf="
 				+ idf + ", tfidf=" + tfidf + "]";
 	}
+
+	@Override
+	public int compareTo(ConnectionTableOccurrence o) {
+		if(this.getTfidf() > o.getTfidf()) {
+			return -1;
+		} else {
+			if(this.getTfidf() == o.getTfidf()) {
+				return 0;
+			} else {
+				return 1;
+			}
+		}
+	}
+	
+	
 	
 }
 

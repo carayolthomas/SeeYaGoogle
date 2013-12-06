@@ -10,6 +10,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.input.SAXBuilder;
 
+
 import utils.*;
 
 public class ProcessingFiles {
@@ -62,11 +63,10 @@ public class ProcessingFiles {
 				Document document = sxb.build(new File(MAIN_DIRECTORY
 						.getAbsolutePath() + "/collection/" + allFiles[fileId]));
 				/** Sauvegarde du document dans la BD */
-				DatabaseConnection.insertDocument(allFiles[fileId]);
+				MemoryConnection.insertDocument(allFiles[fileId]);
 				/** Element racine (BALADE) */
 				Element racine = document.getRootElement();
 				parsingDocument(racine, allFiles[fileId]);
-
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -114,7 +114,7 @@ public class ProcessingFiles {
 	 */
 	private static void traitementRecit(Element element) {
 		/** Ajout du dans la table Conteneur */
-		DatabaseConnection.insertRecit();
+		MemoryConnection.insertRecit();
 		/** Traitement des fils de la presentation */
 		List<Element> childFromRecit = element.getChildren();
 		Iterator<Element> iteChildFromRecit = childFromRecit.iterator();
@@ -145,7 +145,7 @@ public class ProcessingFiles {
 	 */
 	private static void traitementPresentation(Element element) {
 		/** Ajout de la presentation dans la table Conteneur */
-		DatabaseConnection.insertPresentation();
+		MemoryConnection.insertPresentation();
 		/** Traitement des fils de la presentation */
 		List<Element> childFromPresentation = element.getChildren();
 		Iterator<Element> iteChildFromPresentation = childFromPresentation
@@ -178,7 +178,7 @@ public class ProcessingFiles {
 		currentIdParent++;
 		currentIdElement = 0;
 		/** Ajout de la section dans la table Conteneur */
-		DatabaseConnection.insertSec();
+		MemoryConnection.insertSec();
 		/** Traitement des fils de la section */
 		List<Element> childFromSection = element.getChildren();
 		Iterator<Element> iteChildFromSection = childFromSection
@@ -208,7 +208,7 @@ public class ProcessingFiles {
 	 */
 	public static void traitementDescription(Element element) {
 		/** Ajout de la description dans la table Conteneur */
-		DatabaseConnection.insertDescription();
+		MemoryConnection.insertDescription();
 		/** Traitement des fils de la description */
 		List<Element> childFromDescription = element.getChildren();
 		Iterator<Element> iteChildFromDescription = childFromDescription
@@ -226,7 +226,7 @@ public class ProcessingFiles {
 	 */
 	private static void traitementComplements(Element element) {
 		/** Ajout du complément dans la table Conteneur */
-		DatabaseConnection.insertComplements();
+		MemoryConnection.insertComplements();
 		/** Traitement des fils de complément */
 		List<Element> childFromComplements = element.getChildren();
 		Iterator<Element> iteChildFromComplements = childFromComplements
@@ -249,7 +249,7 @@ public class ProcessingFiles {
 		String xpath = ("(/BALADE[1]/" + element.getParentElement().getParentElement().getName() +
 						   "[1]/" + element.getParentElement().getName() + "[" + currentIdParent + 
 						   "]/P[" + currentIdElement + "])");
-		DatabaseConnection.insertP(xpath);
+		MemoryConnection.insertP(xpath);
 		/** Traitement des fils de la description */
 		List<Element> childFromDescription = element.getChildren();
 		Iterator<Element> iteChildFromDescription = childFromDescription
@@ -284,7 +284,7 @@ public class ProcessingFiles {
 	 */
 	public static void traitementListe(Element element) {
 		/** Ajout de la liste dans la table Conteneur */
-		DatabaseConnection.insertListe();
+		MemoryConnection.insertListe();
 		/** Traitement des fils de la liste */
 		List<Element> childFromListe = element.getChildren();
 		Iterator<Element> iteChildFromListe = childFromListe
@@ -302,7 +302,7 @@ public class ProcessingFiles {
 	 */
 	public static void traitementItem(Element element) {
 		/** Ajout de la liste dans la table Conteneur */
-		DatabaseConnection.insertItem();
+		MemoryConnection.insertItem();
 		/** Traitement des fils de la liste */
 		List<Element> childFromListe = element.getChildren();
 		Iterator<Element> iteChildFromListe = childFromListe
@@ -321,7 +321,6 @@ public class ProcessingFiles {
 		StringTokenizer tokenizer = new StringTokenizer(element.getText());
 		currentWordPos = 0;
 		while(tokenizer.hasMoreTokens()) {
-			
 			traitementWord(tokenizer.nextToken().toLowerCase());
 		}
 	}
@@ -351,9 +350,18 @@ public class ProcessingFiles {
 		pWord = pWord.replace("s'", "");
 		pWord = pWord.replace("n'", "");
 		pWord = pWord.replace("'", "");
+		pWord = pWord.replace("\"", "");
+		pWord = pWord.replace("l'", "");
+		pWord = pWord.replace("-", "");
+		pWord = pWord.replace("", "");
+		pWord = pWord.replace("", "");
+		pWord = pWord.replace("«", "");
+		pWord = pWord.replace("»", "");
+		pWord = pWord.replaceAll("[ÀÁÂÃÄÅÇÑñÇçÈÉÊËÌÍÎÏÒÓÔÕÖØÙÚÛÜÝàáâãäåçèéêëìíîïðòóôõöøùúûüýÿ]", "");
+		
 		pWord = pWord.replaceAll("^[0-9]$", "");
 		if(!WordUtils.isInStopList(pWord, stopList) && !pWord.equals("")) {
-			DatabaseConnection.insertWord(WordUtils.transformWord(pWord));
+			MemoryConnection.insertWord(WordUtils.transformWord(pWord));
 		}
 	}
 
@@ -364,6 +372,8 @@ public class ProcessingFiles {
 	public static void main(String[] args) {
 		DatabaseConnection.doConnect();
 		parseAllDocuments();
+		ProcessingCompute.doCompute();
+		DatabaseConnection.insertListsMem();
 		DatabaseConnection.t.commit();
 		DatabaseConnection.endConnect();
 	}

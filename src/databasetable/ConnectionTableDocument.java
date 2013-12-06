@@ -40,4 +40,11 @@ public class ConnectionTableDocument {
 	public void setIdDocument(int idDocument) {
 		this.idDocument = idDocument;
 	}
+
+	@Override
+	public String toString() {
+		return "ConnectionTableDocument [idDocument=" + idDocument
+				+ ", nomDocument=" + nomDocument + "]";
+	}
+	
 }

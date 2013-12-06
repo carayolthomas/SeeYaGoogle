@@ -63,5 +63,12 @@ public class ConnectionTableConteneur {
 		this.typeConteneur = typeConteneur;
 	}
 
+	@Override
+	public String toString() {
+		return "ConnectionTableConteneur [idConteneur=" + idConteneur
+				+ ", idDocument=" + idDocument + ", xpathConteneur="
+				+ xpathConteneur + ", typeConteneur=" + typeConteneur + "]";
+	}
+
 
 }
