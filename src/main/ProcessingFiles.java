@@ -246,9 +246,14 @@ public class ProcessingFiles {
 	private static void traitementP(Element element) {
 		currentIdElement++;
 		/** Ajout de la description dans la table Conteneur */
-		String xpath = ("(/BALADE[1]/" + element.getParentElement().getParentElement().getName() +
-						   "[1]/" + element.getParentElement().getName() + "[" + currentIdParent + 
-						   "]/P[" + currentIdElement + "])");
+		String xpath;
+		if(element.getParentElement().getParentElement().getName().equalsIgnoreCase("BALADE")) {
+			xpath = ("(/BALADE[1]/RECIT[1]/P[" + currentIdElement + "])");
+		} else {
+			xpath = ("(/BALADE[1]/" + element.getParentElement().getParentElement().getName() +
+					   "[1]/" + element.getParentElement().getName() + "[" + currentIdParent + 
+					   "]/P[" + currentIdElement + "])");
+		}
 		MemoryConnection.insertP(xpath);
 		/** Traitement des fils de la description */
 		List<Element> childFromDescription = element.getChildren();

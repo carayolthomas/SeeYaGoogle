@@ -2,7 +2,7 @@
 <!DOCTYPE queries SYSTEM "queries.dtd">
 <queries>
 <query id="q01">
-<text>balade au Mont Blanc</text>
+<text>balade au Mont Blanc MontBlanc</text>
 <narrative> quelles sont les différentes balades/randonnées que l'on peut
 faire sur le Mont Blanc ?
 </narrative>

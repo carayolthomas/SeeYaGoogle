@@ -10,6 +10,7 @@ import java.util.StringTokenizer;
 import databasetable.ConnectionTableDocument;
 import databasetable.ConnectionTableOccurrence;
 import databasetable.ConnectionTableConteneur;
+import sparqlclient.SparqlUtil;
 import utils.DatabaseConnection;
 import utils.ParseForResearch;
 import utils.Qrel;
@@ -25,7 +26,7 @@ public class Research {
 	public static List<ConnectionTableOccurrence> listOccurrence;
 	public static List<ConnectionTableOccurrence> listOccurrenceMatched;
 	public static List<ConnectionTableConteneur> listConteneur;
-	public static int NB_RESULT = 5;
+	public static int NB_RESULT = 50;
 
 	public static List<ConnectionTableOccurrence> answerQuery() {
 		/** Récupération de la table Occurrence */
@@ -59,7 +60,7 @@ public class Research {
 			results.add(l);
 			//System.out.println("ConnectionTableOccurrence added : " + l.toString());
 			cpt++;
-			if (cpt > 5) {
+			if (cpt > NB_RESULT) {
 				break;
 			}
 		}
@@ -83,6 +84,11 @@ public class Research {
 			ConnectionTableOccurrence lOccurrence) {
 		ConnectionTableConteneur associatedConteneur = getConteneurFromOccurrence(lOccurrence);
 		if(associatedConteneur.getTypeConteneur().equals(ProcessingFiles.P)) {
+			/*for(String s : research) {
+				if(s.equals(lOccurrence.getPkOccurrence().getNomTerme())) {
+					lOccurrence.setTfidf(lOccurrence.getTfidf())
+				}
+			}*/
 			return lOccurrence;
 		} else {
 			return null;
@@ -138,9 +144,17 @@ public class Research {
 			while (tokenizer.hasMoreTokens()) {
 				String mot = tokenizer.nextToken().toLowerCase();
 				if (!WordUtils.isInStopList(mot, stopList) && !mot.equals("")) {
+					/** On creer une nouvelle liste pour la balancer à SPARQL */
+					//research.add(mot);
 					research.add(WordUtils.transformWord(mot));
 				}
 			}
+			/** TODO : LES MOTS GENERES PAR SPARQL PEUVENT CONTENIR PLUSIEURS MOTS */
+			//research = SparqlUtil.requestToSPARQL(research);
+			for (String word : research) {
+				System.out.println(WordUtils.transformWord(word));
+			}
+			//System.exit(0);
 			/** Do the research  : Map<NomDocument,XPATH> */
 			System.out.println("Answer Query Started.");
 			List<ConnectionTableOccurrence> resultsResearch = answerQuery();
@@ -150,18 +164,9 @@ public class Research {
 			/** Fill the results */
 			for(ConnectionTableOccurrence currentOccurrence : resultsResearch) {
 				ConnectionTableConteneur currentConteneur = getConteneurFromOccurrence(currentOccurrence);
-				/** Build the prefixe */
-				String prefIdDocument;
-				if(String.valueOf(currentConteneur.getIdDocument()).length() == 1) {
-					prefIdDocument = "d00";
-				} else {
-					if(String.valueOf(currentConteneur.getIdDocument()).length() == 2) {
-						prefIdDocument = "d0";
-					} else {
-						prefIdDocument = "d";
-					}
-				}
-				resultsResearchTemp.add(new ResultQuery("Collection/" + prefIdDocument + currentConteneur.getIdDocument() + ".xml", currentConteneur.getXpathConteneur().replaceAll("[()]", "")));
+				/** Get nomDocument */
+				ArrayList<ConnectionTableDocument> matchedDocuments = (ArrayList<ConnectionTableDocument>) DatabaseConnection.s.createQuery("FROM ConnectionTableDocument d WHERE d.idDocument = " +  currentConteneur.getIdDocument()).list();
+				resultsResearchTemp.add(new ResultQuery("Collection/" + matchedDocuments.get(0).getNomDocument(), currentConteneur.getXpathConteneur().replaceAll("[()]", "")));
 			}
 			/** Check if the result is fine */
 			List<ResultQuery> resultsResearchFinal = new ArrayList<ResultQuery>();
@@ -170,19 +175,19 @@ public class Research {
 			while(iteQrel.hasNext()) {
 				Qrel currentQrel = iteQrel.next();
 				for(ResultQuery rq : resultsResearchTemp) {
-					System.out.println(rq.getNomDocument() + " / " + currentQrel.getDocQrel() + " --- " + rq.getXpath() + " / " + currentQrel.getXpathQrel());
+					//System.out.println(rq.getNomDocument() + " / " + currentQrel.getDocQrel() + " --- " + rq.getXpath() + " / " + currentQrel.getXpathQrel());
 					if(rq.getNomDocument().equals(currentQrel.getDocQrel()) && rq.getXpath().equals(currentQrel.getXpathQrel())) {
-						System.out.println("lol");
-						if(currentQrel.getPertinanceQrel().equals("1")) {
+						System.out.println(rq.getNomDocument() + " --- " + rq.getXpath() + " : " + currentQrel.getDocQrel() + " " + currentQrel.getXpathQrel() + " " + currentQrel.getPertinanceQrel());
+						if(currentQrel.getPertinanceQrel().contains("1")) {
+							System.out.println("OK");
 							resultsResearchFinal.add(new ResultQuery(currentQrel.getDocQrel(), currentQrel.getXpathQrel()));
 						}
 					}
 				}
-				break;
-				/** REVOIR LES XPATH */
+				//break;
 			}
 			/** Donne un % à la requete */
-			float percentSuccess = (resultsResearchFinal.size() / NB_RESULT) * 100;
+			float percentSuccess = ((float) resultsResearchFinal.size() / (float) NB_RESULT) * 100;
 			System.out.println("----> Query n°" + currentQuery.getIdQuery().replace("p", "") 
 							+  " : " + percentSuccess + "%");
 			break;
