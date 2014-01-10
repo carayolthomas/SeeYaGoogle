@@ -23,6 +23,7 @@ import main.ProcessingFiles;
 public class Research {
 
 	public static List<String> research;
+	public static List<String> finalResearch;
 	public static List<String> stopList;
 	public static List<ConnectionTableOccurrence> listOccurrence;
 	public static List<ConnectionTableOccurrence> listOccurrenceMatched;
@@ -33,9 +34,9 @@ public class Research {
 	public static List<ConnectionTableTerme> listTermeTemp;
 	public static int NB_RESULT;
 	/**
-	 * 22% en 25
-	 * 30% en 10
-	 * 31% en 5
+	 * 22% en 25 --> 22%
+	 * 30% en 10 --> 31%
+	 * 31% en 5 --> 33%
 	 */
 	
 
@@ -49,7 +50,7 @@ public class Research {
 		 * Pour tous les mots de la recherche on récupère les lignes de la table
 		 * Occurrence précédemment récupérée.
 		 */
-		for (String mot : research) {
+		for (String mot : finalResearch) {
 			Iterator<ConnectionTableOccurrence> iteOccurence = listOccurrence
 					.iterator();
 			while (iteOccurence.hasNext()) {
@@ -80,7 +81,7 @@ public class Research {
 				}
 			}
 			/** Comparaison des différents mots */
-			for (String mot : research) {
+			for (String mot : finalResearch) {
 				for(ConnectionTableTerme ctt : listTermeTemp) {
 					if(mot.equals(ctt.getNomTerme())) {
 						cto.setTfidf(cto.getTfidf()*10);
@@ -196,15 +197,33 @@ public class Research {
 					String mot = tokenizer.nextToken().toLowerCase();
 					if (!WordUtils.isInStopList(mot, stopList) && !mot.equals("")) {
 						/** On creer une nouvelle liste pour la balancer à SPARQL */
-						//research.add(mot);
-						research.add(WordUtils.transformWord(mot));
+						research.add(mot);
+						//research.add(WordUtils.transformWord(mot));
 					}
 				}
-				/** TODO : LES MOTS GENERES PAR SPARQL PEUVENT CONTENIR PLUSIEURS MOTS */
-				//research = SparqlUtil.requestToSPARQL(research);
-				/*for (String word : research) {
-					System.out.println(WordUtils.transformWord(word));
-				}*/
+				finalResearch = new ArrayList<String>();
+				for(String mot : research) {
+					if (!WordUtils.isInStopList(mot, stopList) && !mot.equals("")) {
+						finalResearch.add(WordUtils.transformWord(mot));
+						finalResearch.add(WordUtils.transformWord(mot));
+					}
+				}
+				research = SparqlUtil.requestToSPARQL(research);
+				/** LES MOTS GENERES PAR SPARQL PEUVENT CONTENIR PLUSIEURS MOTS */
+				for (String word : research) {
+					String[] tempResearch = word.split("[ ]");
+					for(int k = 0 ; k < tempResearch.length ; k++) {
+						if(!WordUtils.isInStopList(tempResearch[k], stopList) && !tempResearch[k].equals("") && !finalResearch.contains(WordUtils.transformWord(tempResearch[k]))) {
+							finalResearch.add(WordUtils.transformWord(tempResearch[k]));
+						}
+					}
+				}
+				/*System.out.println("-------");
+				for (String word : finalResearch) {
+					System.out.println(word);
+				}
+				System.out.println("-------");
+				System.exit(0);*/
 				/** Do the research  : Map<NomDocument,XPATH> */
 				List<ConnectionTableOccurrence> resultsResearch = answerQuery();
 				/** Tmp List<ResultQuery> resultsResearch */
